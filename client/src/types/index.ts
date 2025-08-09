@@ -7,6 +7,7 @@ export interface Satellite {
   altitude: number;
   velocity: number;
   last_updated?: string;
+  source?: string;
 }
 
 export interface Alert {
