@@ -272,8 +272,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 For support and questions:
 - Create an issue on GitHub
-- Email: your-email@example.com
-- Documentation: [Wiki](https://github.com/yourusername/space-traffic-dashboard/wiki)
+- Email: mayurgund@yahoo.com
+- Documentation: [Wiki](https://github.com/MannyG3/space-traffic-dashboard/wiki)
 
 ---
 
