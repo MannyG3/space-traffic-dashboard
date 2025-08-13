@@ -40,7 +40,7 @@ A real-time satellite monitoring and collision detection system built with React
 
 ## 🚀 Live Demo
 
-**🌐 Deployed on Vercel**: [Space Traffic Dashboard](https://space-traffic-dashboard-kdvsc7qr5-mayur-gunds-projects.vercel.app)
+**🌐 Deployed on Vercel**: [Space Traffic Dashboard]([https://space-traffic-dashboard-kdvsc7qr5-mayur-gunds-projects.vercel.app](https://space-traffic-dashboard.vercel.app/))
 
 ## 🛠️ Technology Stack
 
