@@ -16,6 +16,10 @@
       "dest": "/frontend/$1"
     },
     {
+      "src": "/$",
+      "dest": "/frontend/index.html"
+    },
+    {
       "src": "/api/snapshot",
       "dest": "/backend/main.py"
     },
@@ -33,10 +37,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/backend/main.py"
+      "dest": "/frontend/$1"
     }
-  ],
-  "env": {
-    "DEMO_MODE": "1"
-  }
+  ]
 }

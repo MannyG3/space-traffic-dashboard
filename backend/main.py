@@ -45,7 +45,12 @@ BASE_DIR = Path(__file__).resolve().parent
 FRONTEND_DIR = BASE_DIR.parent / "frontend"
 
 app = FastAPI(title="Sat Traffic Backend")
-app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
+# In serverless deployments (e.g., Vercel), the `frontend/` directory may not be
+# packaged with the Python function. Avoid crashing on import.
+if FRONTEND_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
+else:
+    print(f"INFO: frontend directory not found at {FRONTEND_DIR}; /static disabled")
 
 tracked: Dict[int, dict] = {}
 clients: Set[WebSocket] = set()
@@ -56,7 +61,18 @@ _last_n2yo_error: str | None = None
 # ----------------------------
 @app.get("/")
 async def index():
-    return FileResponse(str(FRONTEND_DIR / "index.html"))
+    index_file = FRONTEND_DIR / "index.html"
+    if index_file.exists():
+        return FileResponse(str(index_file))
+    # If deployed behind a static frontend (e.g., Vercel), `/` should be served
+    # by the static build. Return a helpful response instead of 500.
+    return JSONResponse(
+        {
+            "error": "frontend_not_packaged",
+            "message": "Frontend files were not found in this runtime. Serve / from static hosting and call /api/snapshot for data.",
+        },
+        status_code=404,
+    )
 
 @app.get("/health")
 async def health():
@@ -72,6 +88,11 @@ async def health():
 @app.get("/api/snapshot")
 async def api_snapshot():
     """REST API endpoint for polling (used when WebSocket not available, e.g., Vercel)"""
+    # Serverless note (Vercel): background tasks aren't reliable. For DEMO_MODE,
+    # generate/advance demo data on-demand so the UI always has something to show.
+    if DEMO_MODE or not N2YO_API_KEY:
+        _ensure_demo_catalog()
+        _demo_step(time.time())
     sats = list(tracked.values())
     pairs = find_close_pairs(sats, PROXIMITY_THRESHOLD_KM)
     alert_pairs = [
@@ -452,22 +473,26 @@ def _ensure_demo_catalog():
 
 async def demo_loop():
     _ensure_demo_catalog()
+    while True:
+        _demo_step(time.time())
+        await asyncio.sleep(1.0)
+
+def _demo_step(now: float):
+    """Advance demo satellites one step based on wall-clock time."""
     omega_geo = 360.0 / (24 * 3600)         # deg per second
     omega_leo = 360.0 / (95 * 60)           # ~95 min orbit
-    while True:
-        now = time.time()
-        for s in tracked.values():
-            if s["category"] == "GEO":
-                s["satlng"] = (s["satlng"] + omega_geo) % 360.0
-                s["satlat"] = 0.0
-            else:
-                # simple circular-ish motion
-                t = now % (95 * 60)
-                s["satlng"] = (s["satlng"] + omega_leo) % 360.0
-                # small latitude oscillation
-                s["satlat"] = 30.0 * __import__("math").sin(2 * __import__("math").pi * t / (95 * 60))
-            s["last_update"] = now
-        await asyncio.sleep(1.0)
+    for s in tracked.values():
+        last = float(s.get("last_update") or now)
+        dt = max(0.0, now - last)
+        if s.get("category") == "GEO":
+            s["satlng"] = (float(s.get("satlng") or 0.0) + omega_geo * dt) % 360.0
+            s["satlat"] = 0.0
+        else:
+            s["satlng"] = (float(s.get("satlng") or 0.0) + omega_leo * dt) % 360.0
+            # small latitude oscillation based on absolute time
+            t = now % (95 * 60)
+            s["satlat"] = 30.0 * __import__("math").sin(2 * __import__("math").pi * t / (95 * 60))
+        s["last_update"] = now
 
 # ----------------------------
 # Lifecycle
