@@ -1,0 +1,42 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "backend/main.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "frontend/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/static/(.*)",
+      "dest": "/frontend/$1"
+    },
+    {
+      "src": "/api/snapshot",
+      "dest": "/backend/main.py"
+    },
+    {
+      "src": "/health",
+      "dest": "/backend/main.py"
+    },
+    {
+      "src": "/debug/(.*)",
+      "dest": "/backend/main.py"
+    },
+    {
+      "src": "/load-all-satellites",
+      "dest": "/backend/main.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/backend/main.py"
+    }
+  ],
+  "env": {
+    "DEMO_MODE": "1"
+  }
+}

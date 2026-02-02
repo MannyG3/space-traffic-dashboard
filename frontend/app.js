@@ -83,18 +83,59 @@ function pruneStaleEntities(nowSec, ttlSec = 600) { // 10 minutes
   });
 }
 
-// ---------- WebSocket (with auto reconnect) ----------
+// ---------- Data fetching (WebSocket with polling fallback) ----------
 let ws = null;
-let reconnectDelay = 1000; // start 1s, backoff to 10s max
+let reconnectDelay = 1000;
+let usePolling = false;
+let pollingInterval = null;
+
+// Polling fallback for environments without WebSocket support (e.g., Vercel)
+async function pollSnapshot() {
+  try {
+    const response = await fetch('/api/snapshot');
+    if (response.ok) {
+      const data = await response.json();
+      handleSnapshot(data);
+      const loadingEl = document.getElementById('loading');
+      if (loadingEl) loadingEl.style.display = 'none';
+    }
+  } catch (e) {
+    console.error("Polling error:", e);
+  }
+}
+
+function startPolling() {
+  if (pollingInterval) return;
+  console.log("Starting polling mode");
+  usePolling = true;
+  pollSnapshot(); // Initial fetch
+  pollingInterval = setInterval(pollSnapshot, 2000); // Poll every 2 seconds
+}
+
+function stopPolling() {
+  if (pollingInterval) {
+    clearInterval(pollingInterval);
+    pollingInterval = null;
+  }
+  usePolling = false;
+}
 
 function connectWS() {
+  if (usePolling) return; // Don't try WebSocket if polling is active
+  
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  ws = new WebSocket(`${proto}://${location.host}/ws/stream`);
+  try {
+    ws = new WebSocket(`${proto}://${location.host}/ws/stream`);
+  } catch (e) {
+    console.log("WebSocket not supported, using polling");
+    startPolling();
+    return;
+  }
 
   ws.onopen = () => {
     console.log("WS connected");
-    reconnectDelay = 1000; // reset backoff
-    // Hide loading indicator once connected
+    reconnectDelay = 1000;
+    stopPolling(); // Stop polling if WebSocket connects
     const loadingEl = document.getElementById('loading');
     if (loadingEl) loadingEl.style.display = 'none';
   };
@@ -104,7 +145,6 @@ function connectWS() {
       const msg = JSON.parse(ev.data);
       if (msg.type === 'snapshot') {
         handleSnapshot(msg.data);
-        // Hide loading after first data received
         const loadingEl = document.getElementById('loading');
         if (loadingEl) loadingEl.style.display = 'none';
       }
@@ -118,12 +158,26 @@ function connectWS() {
   };
 
   ws.onclose = () => {
-    console.log("WS closed; reconnecting…");
-    setTimeout(connectWS, reconnectDelay);
-    reconnectDelay = Math.min(reconnectDelay * 2, 10000); // up to 10s
+    console.log("WS closed");
+    if (reconnectDelay > 5000) {
+      // After several failed attempts, switch to polling
+      console.log("Switching to polling mode");
+      startPolling();
+    } else {
+      setTimeout(connectWS, reconnectDelay);
+      reconnectDelay = Math.min(reconnectDelay * 2, 10000);
+    }
   };
 }
+
+// Start connection
 connectWS();
+// Also start polling immediately as fallback (will stop if WS connects)
+setTimeout(() => {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    startPolling();
+  }
+}, 3000);
 
 // ---------- Entity management ----------
 function updateOrCreateSat(sat) {

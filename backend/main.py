@@ -69,6 +69,27 @@ async def health():
         "n2yo_error": _last_n2yo_error,
     }
 
+@app.get("/api/snapshot")
+async def api_snapshot():
+    """REST API endpoint for polling (used when WebSocket not available, e.g., Vercel)"""
+    sats = list(tracked.values())
+    pairs = find_close_pairs(sats, PROXIMITY_THRESHOLD_KM)
+    alert_pairs = [
+        {"a": p[0].get("satname"), "b": p[1].get("satname"), "dist_km": float(p[2])}
+        for p in pairs
+    ]
+    return {
+        "ts": datetime.utcnow().isoformat() + "Z",
+        "sats": sats,
+        "counts": {
+            "total": len(sats),
+            "leo": sum(1 for s in sats if s.get("category") == "LEO"),
+            "geo": sum(1 for s in sats if s.get("category") == "GEO"),
+            "alerts": len(alert_pairs),
+        },
+        "alerts": alert_pairs,
+    }
+
 @app.get("/debug/n2yo")
 async def debug_n2yo(lat: float = 0.0, lng: float = 0.0, radius_km: int = ABOVE_SEARCH_RADIUS_KM):
     if DEMO_MODE:
