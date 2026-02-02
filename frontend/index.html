@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Satellite Traffic Dashboard</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+  <!-- Cesium CDN (requires internet) -->
+  <link href="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Cesium.js"></script>
+</head>
+<body>
+  <div id="app">
+    <div id="loading" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1000;background:rgba(0,0,0,0.8);color:white;padding:20px;border-radius:8px;display:none;">
+      Loading satellite data...
+    </div>
+    <div id="left">
+      <div class="card header">
+        <div>
+          <div class="title">Sat Traffic • Live</div>
+          <div class="sat-meta">Source: N2YO • Real-time demo</div>
+        </div>
+        <div style="margin-left:auto;">
+          <button class="btn" id="btn-center">Home</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="font-weight:700">Overview</div>
+        <div class="counts">
+          <div class="count-box">
+            <div>
+              <div style="font-size:13px;color:var(--muted)">Total satellites</div>
+              <div class="num" id="count-total">0</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:13px;color:var(--muted)">LEO</div>
+              <div class="num" id="count-leo" style="color:var(--accent)">0</div>
+              <div style="font-size:13px;color:var(--muted)">GEO</div>
+              <div class="num" id="count-geo" style="color:var(--danger)">0</div>
+            </div>
+          </div>
+
+          <div class="count-box">
+            <div>
+              <div style="font-size:13px;color:var(--muted)">Alerts (near-collisions)</div>
+              <div id="count-alerts" class="num alert">0</div>
+            </div>
+            <div>
+              <button class="btn" id="btn-mute">Mute</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="font-weight:700">Alerts feed</div>
+        <div class="feed" id="alerts-feed"></div>
+      </div>
+
+      <div class="card info-panel" id="info-panel">
+        <div style="font-weight:700">Selected Satellite</div>
+        <div id="sat-info">Click a satellite on the globe to view details.</div>
+      </div>
+    </div>
+
+    <div id="cesiumContainer"></div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

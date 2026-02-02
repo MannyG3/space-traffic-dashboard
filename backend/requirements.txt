@@ -1,0 +1,11 @@
+# Backend dependencies for sat-traffic-dashboard
+
+fastapi>=0.110
+uvicorn[standard]>=0.27
+aiohttp>=3.9
+pydantic>=2.6
+python-dateutil>=2.8.2
+aiosqlite>=0.19
+
+# Optional: load env vars from a .env file (handy for N2YO_API_KEY)
+python-dotenv>=1.0
