@@ -10,7 +10,7 @@ async def call_n2yo(session: aiohttp.ClientSession, path: str, api_key: str, par
         params = {}
     params['apiKey'] = api_key
     url = f"{BASE}/{path}"
-    async with session.get(url, params=params, timeout=30) as resp:
+    async with session.get(url, params=params, timeout=aiohttp.ClientTimeout(total=30)) as resp:
         text = await resp.text()
         if resp.status != 200:
             raise RuntimeError(f"N2YO error {resp.status}: {text}")
