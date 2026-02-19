@@ -10,13 +10,16 @@
       "use": "@vercel/static"
     }
   ],
+  "env": {
+    "DEMO_MODE": "1"
+  },
   "routes": [
     {
       "src": "/static/(.*)",
       "dest": "/frontend/$1"
     },
     {
-      "src": "/$",
+      "src": "^/$",
       "dest": "/frontend/index.html"
     },
     {

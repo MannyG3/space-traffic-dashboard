@@ -3,6 +3,7 @@
 import asyncio
 import os
 import time
+from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Set, Tuple, List
@@ -44,7 +45,38 @@ DEMO_MODE = os.getenv("DEMO_MODE", "0") == "1"
 BASE_DIR = Path(__file__).resolve().parent
 FRONTEND_DIR = BASE_DIR.parent / "frontend"
 
-app = FastAPI(title="Sat Traffic Backend")
+
+# ----------------------------
+# Lifespan (startup / shutdown)
+# ----------------------------
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    if not FRONTEND_DIR.exists():
+        print(f"WARNING: frontend directory not found at: {FRONTEND_DIR}")
+
+    # Start broadcast immediately so frontend gets responses right away
+    asyncio.create_task(broadcast_snapshot())
+
+    if DEMO_MODE:
+        print("Starting DEMO MODE (simulated satellites, no external APIs).")
+        asyncio.create_task(demo_loop())
+    elif N2YO_API_KEY:
+        # Delay tracker loop start to allow server to respond immediately
+        async def delayed_start():
+            await asyncio.sleep(2)  # Give server 2 seconds to start responding
+            print("Starting satellite tracker loops...")
+            asyncio.create_task(tracker_loop(N2YO_API_KEY))
+            asyncio.create_task(positions_loop(N2YO_API_KEY))
+
+        asyncio.create_task(delayed_start())
+    else:
+        print("WARNING: N2YO_API_KEY missing. Set env var or enable DEMO_MODE=1.")
+
+    yield
+    # shutdown: nothing to clean up in serverless
+
+
+app = FastAPI(title="Sat Traffic Backend", lifespan=lifespan)
 # In serverless deployments (e.g., Vercel), the `frontend/` directory may not be
 # packaged with the Python function. Avoid crashing on import.
 if FRONTEND_DIR.exists():
@@ -493,35 +525,6 @@ def _demo_step(now: float):
             t = now % (95 * 60)
             s["satlat"] = 30.0 * __import__("math").sin(2 * __import__("math").pi * t / (95 * 60))
         s["last_update"] = now
-
-# ----------------------------
-# Lifecycle
-# ----------------------------
-@app.on_event("startup")
-async def startup_event():
-    if not FRONTEND_DIR.exists():
-        print(f"WARNING: frontend directory not found at: {FRONTEND_DIR}")
-
-    # Start broadcast immediately so frontend gets responses right away
-    asyncio.create_task(broadcast_snapshot())
-
-    if DEMO_MODE:
-        print("Starting DEMO MODE (simulated satellites, no external APIs).")
-        asyncio.create_task(demo_loop())
-        return
-
-    if not N2YO_API_KEY:
-        print("WARNING: N2YO_API_KEY missing. Set env var or enable DEMO_MODE=1.")
-        return
-
-    # Delay tracker loop start to allow server to respond immediately
-    async def delayed_start():
-        await asyncio.sleep(2)  # Give server 2 seconds to start responding
-        print("Starting satellite tracker loops...")
-        asyncio.create_task(tracker_loop(N2YO_API_KEY))
-        asyncio.create_task(positions_loop(N2YO_API_KEY))
-    
-    asyncio.create_task(delayed_start())
 
 # ----------------------------
 # Entrypoint
