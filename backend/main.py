@@ -10,12 +10,16 @@ from typing import Dict, Set, Tuple, List
 
 import aiohttp
 import uvicorn
+from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from n2yo_client import above, positions, tle
 from conj import find_close_pairs
+
+BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(BASE_DIR / ".env")
 
 # ---------- API key (from environment variable) ----------
 N2YO_API_KEY = os.getenv("N2YO_API_KEY", "").strip()
@@ -40,9 +44,9 @@ ABOVE_SEEDS: List[Tuple[float, float]] = [
 ]
 
 # DEMO mode: simulate satellites without any API
-DEMO_MODE = os.getenv("DEMO_MODE", "0") == "1"
-
-BASE_DIR = Path(__file__).resolve().parent
+# Default to demo on Vercel unless explicitly overridden.
+demo_default = "1" if os.getenv("VERCEL") == "1" else "0"
+DEMO_MODE = os.getenv("DEMO_MODE", demo_default) == "1"
 FRONTEND_DIR = BASE_DIR.parent / "frontend"
 
 

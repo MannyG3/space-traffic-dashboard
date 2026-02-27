@@ -144,6 +144,29 @@ DEMO_MODE=1
 DEMO_MODE=1
 ```
 
+### Vercel behavior
+
+- `vercel.json` sets `DEMO_MODE=1` for deployments.
+- Backend also defaults to demo mode automatically when running on Vercel (`VERCEL=1`) if `DEMO_MODE` is not explicitly set.
+
+## Deploy to Vercel
+
+From the project root:
+
+```bash
+# Preview deployment
+npx -y vercel deploy --yes
+
+# Production deployment
+npx -y vercel deploy --prod --yes
+```
+
+If the project is not linked yet, link it first:
+
+```bash
+npx -y vercel link
+```
+
 ## License
 
 MIT License

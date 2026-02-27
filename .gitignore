@@ -30,3 +30,5 @@ Thumbs.db
 dist/
 build/
 *.egg-info/
+.vercel
+.env*.local
